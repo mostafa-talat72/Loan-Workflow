@@ -1,0 +1,953 @@
+{
+  "info": {
+    "name": "WorkFlow-Task - Loan Request (Activiti)",
+    "description": "End-to-end checks for the loan-request BPMN. Run folders in order (0 then 1..6) with the Collection Runner, or run 0 first and then any scenario manually. Requires the app on http://localhost:8085 with the seeded users (customer1/customer2/officer1/manager1, password Password@123). These requests write real rows (LOAN_APPLICATION + ACT_* history) to the configured Oracle schema.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8085" },
+    { "key": "password", "value": "Password@123" },
+    { "key": "customerToken", "value": "" },
+    { "key": "customer2Token", "value": "" },
+    { "key": "officerToken", "value": "" },
+    { "key": "managerToken", "value": "" },
+    { "key": "appIdS1", "value": "" },
+    { "key": "appIdS2", "value": "" },
+    { "key": "appIdS3", "value": "" },
+    { "key": "appIdS4", "value": "" },
+    { "key": "appIdS5", "value": "" },
+    { "key": "appIdNeg", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0 - Login",
+      "item": [
+        {
+          "name": "Login customer1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('token returned', () => pm.expect(b.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('customerToken', b.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"customer1\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login customer2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('customer2Token', b.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"customer2\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login officer1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('role is RISK_OFFICER', () => pm.expect(b.role).to.eql('RISK_OFFICER'));",
+                  "pm.collectionVariables.set('officerToken', b.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"officer1\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login manager1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('role is BRANCH_MANAGER', () => pm.expect(b.role).to.eql('BRANCH_MANAGER'));",
+                  "pm.collectionVariables.set('managerToken', b.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"manager1\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 - Auto reject (credit score 480)",
+      "item": [
+        {
+          "name": "customer2 submits 20,000",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('appIdS1', b.id);",
+                  "pm.test('status is REJECTED', () => pm.expect(b.status.code).to.eql('REJECTED'));",
+                  "pm.test('no disbursement', () => pm.expect(b.disbursementRef).to.eql(null));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customer2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 20000,\n  \"termMonths\": 24,\n  \"purpose\": \"Auto reject scenario\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/loans", "host": ["{{baseUrl}}"], "path": ["loans"] }
+          }
+        },
+        {
+          "name": "customer2 reads own application",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is REJECTED', () => pm.expect(b.status.code).to.eql('REJECTED'));",
+                  "pm.test('credit score copied', () => pm.expect(b.creditScore).to.eql(480));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customer2Token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS1}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS1}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Small loan approved (20,000)",
+      "item": [
+        {
+          "name": "customer1 submits 20,000",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('appIdS2', b.id);",
+                  "pm.test('waiting for officer', () => pm.expect(b.status.code).to.eql('OFFICER_REVIEW'));",
+                  "pm.test('process started', () => pm.expect(b.processInstanceId).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 20000,\n  \"termMonths\": 12,\n  \"purpose\": \"Small loan\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/loans", "host": ["{{baseUrl}}"], "path": ["loans"] }
+          }
+        },
+        {
+          "name": "officer sees it in pending",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "const id = Number(pm.collectionVariables.get('appIdS2'));",
+                  "pm.test('application listed for the officer', () => pm.expect(list.map(x => x.id)).to.include(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{officerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/loans/pending", "host": ["{{baseUrl}}"], "path": ["loans", "pending"] }
+          }
+        },
+        {
+          "name": "officer APPROVEs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('approved end reached', () => pm.expect(b.status.code).to.eql('APPROVED'));",
+                  "pm.test('disbursement ref written', () => pm.expect(b.disbursementRef).to.be.a('string'));",
+                  "pm.test('officer decision stored', () => pm.expect(b.officerDecision.code).to.eql('APPROVE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionCode\": \"APPROVE\",\n  \"notes\": \"Income and score look fine\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS2}}/risk-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS2}}", "risk-review"]
+            }
+          }
+        },
+        {
+          "name": "officer pending no longer contains it",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "const id = Number(pm.collectionVariables.get('appIdS2'));",
+                  "pm.test('task left the officers queue', () => pm.expect(list.map(x => x.id)).to.not.include(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{officerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/loans/pending", "host": ["{{baseUrl}}"], "path": ["loans", "pending"] }
+          }
+        },
+        {
+          "name": "customer1 sees APPROVED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is APPROVED', () => pm.expect(b.status.code).to.eql('APPROVED'));",
+                  "pm.test('disbursement ref written', () => pm.expect(b.disbursementRef).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS2}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS2}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Large loan approved (75,000)",
+      "item": [
+        {
+          "name": "customer1 submits 75,000",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('appIdS3', b.id);",
+                  "pm.test('waiting for officer', () => pm.expect(b.status.code).to.eql('OFFICER_REVIEW'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 75000,\n  \"termMonths\": 36,\n  \"purpose\": \"Large loan\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/loans", "host": ["{{baseUrl}}"], "path": ["loans"] }
+          }
+        },
+        {
+          "name": "officer APPROVEs - routed to manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('amount > 50k routes to manager', () => pm.expect(b.status.code).to.eql('MANAGER_REVIEW'));",
+                  "pm.test('no disbursement yet', () => pm.expect(b.disbursementRef).to.eql(null));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionCode\": \"APPROVE\",\n  \"notes\": \"Collateral verified\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS3}}/risk-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS3}}", "risk-review"]
+            }
+          }
+        },
+        {
+          "name": "manager sees it in pending",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "const id = Number(pm.collectionVariables.get('appIdS3'));",
+                  "pm.test('application listed for the manager', () => pm.expect(list.map(x => x.id)).to.include(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/loans/pending", "host": ["{{baseUrl}}"], "path": ["loans", "pending"] }
+          }
+        },
+        {
+          "name": "manager APPROVEs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is APPROVED', () => pm.expect(b.status.code).to.eql('APPROVED'));",
+                  "pm.test('disbursement ref written', () => pm.expect(b.disbursementRef).to.be.a('string'));",
+                  "pm.test('manager decision stored', () => pm.expect(b.managerDecision.code).to.eql('APPROVE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{managerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionCode\": \"APPROVE\",\n  \"notes\": \"Approved at branch level\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS3}}/manager-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS3}}", "manager-review"]
+            }
+          }
+        },
+        {
+          "name": "customer1 sees APPROVED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is APPROVED', () => pm.expect(b.status.code).to.eql('APPROVED'));",
+                  "pm.test('both decisions stored', () => { pm.expect(b.officerDecision.code).to.eql('APPROVE'); pm.expect(b.managerDecision.code).to.eql('APPROVE'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS3}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS3}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Officer rejects (30,000)",
+      "item": [
+        {
+          "name": "customer1 submits 30,000",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('appIdS4', b.id);",
+                  "pm.test('waiting for officer', () => pm.expect(b.status.code).to.eql('OFFICER_REVIEW'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 30000,\n  \"termMonths\": 18,\n  \"purpose\": \"Officer reject scenario\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/loans", "host": ["{{baseUrl}}"], "path": ["loans"] }
+          }
+        },
+        {
+          "name": "officer REJECTs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is REJECTED', () => pm.expect(b.status.code).to.eql('REJECTED'));",
+                  "pm.test('no disbursement', () => pm.expect(b.disbursementRef).to.eql(null));",
+                  "pm.test('officer decision stored', () => pm.expect(b.officerDecision.code).to.eql('REJECT'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionCode\": \"REJECT\",\n  \"notes\": \"Debt ratio too high\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS4}}/risk-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS4}}", "risk-review"]
+            }
+          }
+        },
+        {
+          "name": "customer1 sees REJECTED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is REJECTED', () => pm.expect(b.status.code).to.eql('REJECTED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS4}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS4}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Manager rejects (75,000)",
+      "item": [
+        {
+          "name": "customer1 submits 75,000",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('appIdS5', b.id);",
+                  "pm.test('waiting for officer', () => pm.expect(b.status.code).to.eql('OFFICER_REVIEW'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 75000,\n  \"termMonths\": 60,\n  \"purpose\": \"Manager reject scenario\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/loans", "host": ["{{baseUrl}}"], "path": ["loans"] }
+          }
+        },
+        {
+          "name": "officer APPROVEs - routed to manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('routed to manager', () => pm.expect(b.status.code).to.eql('MANAGER_REVIEW'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionCode\": \"APPROVE\",\n  \"notes\": \"Officer approved\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS5}}/risk-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS5}}", "risk-review"]
+            }
+          }
+        },
+        {
+          "name": "manager REJECTs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is REJECTED', () => pm.expect(b.status.code).to.eql('REJECTED'));",
+                  "pm.test('manager decision stored', () => pm.expect(b.managerDecision.code).to.eql('REJECT'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{managerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionCode\": \"REJECT\",\n  \"notes\": \"Exposure too high for the branch\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS5}}/manager-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS5}}", "manager-review"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - Negative cases",
+      "item": [
+        {
+          "name": "no token -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/loans/my", "host": ["{{baseUrl}}"], "path": ["loans", "my"] }
+          }
+        },
+        {
+          "name": "customer calls /loans/pending -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/loans/pending", "host": ["{{baseUrl}}"], "path": ["loans", "pending"] }
+          }
+        },
+        {
+          "name": "officer submits a loan -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000,\n  \"termMonths\": 6,\n  \"purpose\": \"Not allowed\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/loans", "host": ["{{baseUrl}}"], "path": ["loans"] }
+          }
+        },
+        {
+          "name": "manager calls risk-review -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{managerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionCode\": \"APPROVE\",\n  \"notes\": \"wrong role\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS5}}/risk-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS5}}", "risk-review"]
+            }
+          }
+        },
+        {
+          "name": "validation: amount too small, term 0 -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));",
+                  "const b = pm.response.json();",
+                  "pm.test('both fields reported', () => { pm.expect(b.errors).to.have.property('amount'); pm.expect(b.errors).to.have.property('termMonths'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50,\n  \"termMonths\": 0\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/loans", "host": ["{{baseUrl}}"], "path": ["loans"] }
+          }
+        },
+        {
+          "name": "customer1 reads customer2 application -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdS1}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdS1}}"]
+            }
+          }
+        },
+        {
+          "name": "unknown id -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/loans/99999999", "host": ["{{baseUrl}}"], "path": ["loans", "99999999"] }
+          }
+        },
+        {
+          "name": "customer1 submits (live task for decision test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('appIdNeg', b.id);",
+                  "pm.test('waiting for officer', () => pm.expect(b.status.code).to.eql('OFFICER_REVIEW'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 15000,\n  \"termMonths\": 6,\n  \"purpose\": \"Decision-code negative test\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/loans", "host": ["{{baseUrl}}"], "path": ["loans"] }
+          }
+        },
+        {
+          "name": "unknown decision code -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionCode\": \"MAYBE\",\n  \"notes\": \"not a seeded code\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdNeg}}/risk-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdNeg}}", "risk-review"]
+            }
+          }
+        },
+        {
+          "name": "cleanup: officer APPROVEs the negative-test application",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is APPROVED', () => pm.expect(b.status.code).to.eql('APPROVED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionCode\": \"APPROVE\",\n  \"notes\": \"Closing the negative-test application\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{appIdNeg}}/risk-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "{{appIdNeg}}", "risk-review"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

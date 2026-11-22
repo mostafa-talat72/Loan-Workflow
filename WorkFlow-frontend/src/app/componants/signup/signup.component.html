@@ -1,0 +1,76 @@
+<section class="auth-page">
+  <div class="auth-card">
+
+    <aside class="auth-side">
+      <span class="auth-badge">LW</span>
+      <h3>Open your account<br>in minutes.</h3>
+      <p>Create your profile, request a loan and watch the workflow move between review stages.</p>
+      <ul class="auth-points">
+        <li>Apply online with a live status page</li>
+        <li>Automatic credit score check</li>
+        <li>Reviews handled by the right team</li>
+      </ul>
+    </aside>
+
+    <div class="auth-form">
+      <h4>Create account</h4>
+      <p class="auth-sub">Fill in your details to get started</p>
+
+      <form>
+        <div class="mb-3">
+          <label for="fullName">Full name</label>
+          <input [class.is-invalid]="fullNameError" #fullName id="fullName" type="text" class="form-control"
+                 autocomplete="name" placeholder="e.g. Ahmed Hassan">
+            <div class="invalid-feedback d-block" *ngIf="fullNameError">
+                {{ fullNameError }}
+            </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="username">Username</label>
+          <input [class.is-invalid]="usernameError" #username id="username" type="text" class="form-control"
+                 autocomplete="username" placeholder="Choose a username">
+            <div class="invalid-feedback d-block" *ngIf="usernameError">
+                {{ usernameError }}
+            </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="email">Email <span class="text-muted fw-normal">(optional)</span></label>
+          <input [class.is-invalid]="emailError" #email id="email" type="email" class="form-control"
+                 autocomplete="email" placeholder="you@example.com">
+            <div class="invalid-feedback d-block" *ngIf="emailError">
+                {{ emailError }}
+            </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="password">Password</label>
+            <input [class.is-invalid]="passwordError" #password id="password" type="password" class="form-control"
+                   autocomplete="new-password" placeholder="At least 8 characters">
+              <div class="invalid-feedback d-block" *ngIf="passwordError">
+                  {{ passwordError }}
+              </div>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label for="confirmPassword">Confirm password</label>
+            <input [class.is-invalid]="confirmPasswordError" #confirmPassword id="confirmPassword" type="password" class="form-control"
+                   autocomplete="new-password" placeholder="Repeat the password">
+              <div class="invalid-feedback d-block" *ngIf="confirmPasswordError">
+                  {{ confirmPasswordError }}
+              </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary w-100" type="button" (click)="signUp(fullName.value, username.value, email.value, password.value, confirmPassword.value)">
+          Create account
+        </button>
+      </form>
+
+      <p class="auth-switch">Already have an account? <a routerLink="/login">Sign in</a></p>
+    </div>
+
+  </div>
+</section>

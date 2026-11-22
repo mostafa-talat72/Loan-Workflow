@@ -1,0 +1,25 @@
+<nav class="app-navbar navbar navbar-expand">
+  <div class="container">
+
+    <a class="navbar-brand brand" routerLink="{{isCustomer()? '/applications' : '/pending'}}">
+      <span class="brand-mark">LW</span>
+      <span class="brand-text">Loan Workflow</span>
+    </a>
+
+    <ul class="navbar-nav me-auto nav-links">
+      <li *ngIf="isCustomer()" class="nav-item">
+        <a class="nav-link" routerLink="/applications" routerLinkActive="active">My applications</a>
+      </li>
+      <li *ngIf="!isCustomer()" class="nav-item">
+        <a class="nav-link" routerLink="/pending" routerLinkActive="active">Pending Applications</a>
+      </li>
+    </ul>
+
+    <div class="auth-actions">
+      <a *ngIf="!isUserLogin()" class="btn btn-ghost btn-sm" routerLink="/login">Login</a>
+      <a *ngIf="!isUserLogin()" class="btn btn-solid btn-sm" routerLink="/signup">Sign up</a>
+      <button *ngIf="isUserLogin()" type="button" class="btn btn-solid btn-sm" (click)="logout()">Logout</button>
+    </div>
+
+  </div>
+</nav>

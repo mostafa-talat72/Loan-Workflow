@@ -1,0 +1,95 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="page-title mb-0">Application{{loanApplication ? ' #' + loanApplication.id : ''}}</h4>
+  <a class="btn btn-outline-secondary" routerLink="{{isCustomer()? '/applications' : '/pending'}}">Back</a>
+</div>
+
+<div *ngIf="messageError" class="alert alert-danger text-center">
+  <strong>Could not load the application.</strong> {{messageError}}
+</div>
+
+<div *ngIf="!loanApplication && !messageError" class="card">
+  <div class="card-body text-center py-5">
+    <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+    <p class="text-muted mt-3 mb-0">Loading application...</p>
+  </div>
+</div>
+
+<div *ngIf="loanApplication" class="card">
+  <div class="card-body">
+
+    <div class="mb-3">
+      <span class="badge badge-status {{getLoanStatusCodeStyle(loanApplication.status.code)}}">{{loanApplication.status.name}}</span>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4">
+        <div class="detail-label">Amount</div>
+        <div class="detail-value">EGP{{loanApplication.amount}}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="detail-label">Term</div>
+        <div class="detail-value">{{loanApplication.termMonths}} months</div>
+      </div>
+      <div class="col-md-4">
+        <div class="detail-label">Credit score</div>
+        <div class="detail-value">{{loanApplication.creditScore}}</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4">
+        <div class="detail-label">Applicant</div>
+        <div class="detail-value">{{loanApplication.applicant.fullName || loanApplication.applicant.username}}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="detail-label">Purpose</div>
+        <div class="detail-value">{{loanApplication.purpose}}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="detail-label">Submitted at</div>
+        <div class="detail-value">{{loanApplication.createdAt}}</div>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="detail-label">Risk officer decision</div>
+          <div class="detail-value">
+              <span [ngClass]="['badge', 'badge-status', getDecisionCodeStyle(loanApplication.officerDecision ? loanApplication.officerDecision.code : 'default')]">
+                  {{loanApplication.officerDecision ? loanApplication.officerDecision.name : "Pending"}}
+              </span>
+              <div *ngIf="loanApplication.officerNotes" class="text-muted small">
+                  {{loanApplication.officerNotes}}.
+              </div>
+          </div>
+      </div>
+      <div class="col-md-6">
+        <div class="detail-label">Branch manager decision</div>
+          <div class="detail-value">
+              <span [ngClass]="['badge', 'badge-status', getDecisionCodeStyle(loanApplication.managerDecision ? loanApplication.managerDecision.code : 'default')]">
+                  {{loanApplication.managerDecision ? loanApplication.managerDecision.name : "Pending"}}
+              </span>
+              <div *ngIf="loanApplication.managerDecision" class="text-muted small">
+                  {{loanApplication.managerNotes}}.
+              </div>
+          </div>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="detail-label">Disbursement reference</div>
+        <div class="detail-value">{{loanApplication.disbursementRef || "Not disbursed yet"}}</div>
+      </div>
+      <div class="col-md-6">
+        <div class="detail-label">Process instance</div>
+        <div class="detail-value"><code>{{loanApplication.processInstanceId}}</code></div>
+      </div>
+    </div>
+
+  </div>
+</div>

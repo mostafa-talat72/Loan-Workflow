@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:activiti="http://activiti.org/bpmn" id="Definitions_0d6iojk" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.53.0">
+  <bpmn:process id="loanRequest" name="Loan Request" isExecutable="true">
+    <bpmn:startEvent id="start" name="Start">
+      <bpmn:outgoing>toSubmit</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="toSubmit" name="Start to submit" sourceRef="start" targetRef="submitApplication" />
+    <bpmn:userTask id="submitApplication" name="Submitting a loan application" activiti:candidateGroups="CUSTOMER">
+      <bpmn:incoming>toSubmit</bpmn:incoming>
+      <bpmn:outgoing>fromSubmitToCreditCheck</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="fromSubmitToCreditCheck" name="From submit to credit check" sourceRef="submitApplication" targetRef="creditCheck" />
+    <bpmn:serviceTask id="creditCheck" name="Automated credit check" activiti:delegateExpression="${creditCheckDelegate}">
+      <bpmn:incoming>fromSubmitToCreditCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_12vajl8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="eligibilityGateway" name="Eligibility?&#10;creditScore ≥ 550" default="ineligible">
+      <bpmn:incoming>Flow_12vajl8</bpmn:incoming>
+      <bpmn:outgoing>ineligible</bpmn:outgoing>
+      <bpmn:outgoing>eligible</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_12vajl8" sourceRef="creditCheck" targetRef="eligibilityGateway" />
+    <bpmn:endEvent id="autoRejected" name="Automatically rejected">
+      <bpmn:incoming>ineligible</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="ineligible" name="Ineligible" sourceRef="eligibilityGateway" targetRef="autoRejected" />
+    <bpmn:sequenceFlow id="eligible" name="Eligible" sourceRef="eligibilityGateway" targetRef="riskReview">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${creditScore &gt;= 550}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="riskReview" name="Risk Officer Review" activiti:candidateGroups="RISK_OFFICER">
+      <bpmn:incoming>eligible</bpmn:incoming>
+      <bpmn:outgoing>Flow_1ofcqsi</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="riskDecisionGateway" name="Risk-based decision?" default="unacceptableRisk">
+      <bpmn:incoming>Flow_1ofcqsi</bpmn:incoming>
+      <bpmn:outgoing>unacceptableRisk</bpmn:outgoing>
+      <bpmn:outgoing>acceptableRisk</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1ofcqsi" sourceRef="riskReview" targetRef="riskDecisionGateway" />
+    <bpmn:endEvent id="rejectedByOfficer" name="Rejected by risk officer">
+      <bpmn:incoming>unacceptableRisk</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="unacceptableRisk" name="reject" sourceRef="riskDecisionGateway" targetRef="rejectedByOfficer" />
+    <bpmn:exclusiveGateway id="amountGateway" name="Amount &#62; 50,000?" default="amountLess50">
+      <bpmn:incoming>acceptableRisk</bpmn:incoming>
+      <bpmn:outgoing>amountLess50</bpmn:outgoing>
+      <bpmn:outgoing>amountMore50</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="acceptableRisk" name="approved" sourceRef="riskDecisionGateway" targetRef="amountGateway">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${officerDecision eq 'APPROVE'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="amountLess50" name="Amount ≤ 50,000" sourceRef="amountGateway" targetRef="disburseLoan" />
+    <bpmn:sequenceFlow id="amountMore50" name="Amount &#62; 50,000" sourceRef="amountGateway" targetRef="managerApproval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${amount &gt; 50000}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="disburseLoan" name="Disbursement of the loan" activiti:delegateExpression="${disburseDelegate}">
+      <bpmn:incoming>amountLess50</bpmn:incoming>
+      <bpmn:incoming>managerAcceptable</bpmn:incoming>
+      <bpmn:outgoing>Flow_087mwij</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="managerApproval" name="Branch Manager Approval" activiti:candidateGroups="BRANCH_MANAGER">
+      <bpmn:incoming>amountMore50</bpmn:incoming>
+      <bpmn:outgoing>Flow_0pvh0n5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="rejectedByManager" name="Rejected by branch manager">
+      <bpmn:incoming>managerRefused</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="managerDecisionGateway" name="The manager&#39;s decision?" default="managerRefused">
+      <bpmn:incoming>Flow_0pvh0n5</bpmn:incoming>
+      <bpmn:outgoing>managerRefused</bpmn:outgoing>
+      <bpmn:outgoing>managerAcceptable</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0pvh0n5" sourceRef="managerApproval" targetRef="managerDecisionGateway" />
+    <bpmn:sequenceFlow id="managerRefused" name="no" sourceRef="managerDecisionGateway" targetRef="rejectedByManager" />
+    <bpmn:sequenceFlow id="managerAcceptable" name="yes" sourceRef="managerDecisionGateway" targetRef="disburseLoan">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${managerDecision eq 'APPROVE'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="approved" name="Approved">
+      <bpmn:incoming>Flow_087mwij</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_087mwij" sourceRef="disburseLoan" targetRef="approved" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="loanRequest">
+      <bpmndi:BPMNShape id="Activity_1hb9m4j_di" bpmnElement="submitApplication">
+        <dc:Bounds x="270" y="220" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0o96qa3_di" bpmnElement="riskReview">
+        <dc:Bounds x="220" y="390" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1l25ixd_di" bpmnElement="riskDecisionGateway" isMarkerVisible="true">
+        <dc:Bounds x="245" y="525" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="182" y="536" width="56" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0a8wsoc_di" bpmnElement="rejectedByOfficer">
+        <dc:Bounds x="252" y="672" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="249" y="715" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1mgozgm_di" bpmnElement="amountGateway" isMarkerVisible="true">
+        <dc:Bounds x="485" y="525" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="455" y="503" width="110" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0h96gwg_di" bpmnElement="disburseLoan">
+        <dc:Bounds x="1070" y="510" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0x94dnm_di" bpmnElement="managerApproval">
+        <dc:Bounds x="730" y="510" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0zlkko3_di" bpmnElement="rejectedByManager">
+        <dc:Bounds x="972" y="392" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="970" y="373" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_16jlw0c_di" bpmnElement="managerDecisionGateway" isMarkerVisible="true">
+        <dc:Bounds x="895" y="525" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="883" y="582" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0nr3wh6_di" bpmnElement="approved">
+        <dc:Bounds x="1302" y="532" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1296" y="575" width="48" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="start">
+        <dc:Bounds x="112" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="118" y="285" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0p7pr4l_di" bpmnElement="eligibilityGateway" isMarkerVisible="true">
+        <dc:Bounds x="875" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="931" y="246" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1i2nro9_di" bpmnElement="creditCheck">
+        <dc:Bounds x="600" y="220" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_153s4kn_di" bpmnElement="autoRejected">
+        <dc:Bounds x="1012" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="997" y="84.5" width="66" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0zbhdut_di" bpmnElement="toSubmit">
+        <di:waypoint x="148" y="260" />
+        <di:waypoint x="270" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="179" y="242" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05wfast_di" bpmnElement="fromSubmitToCreditCheck">
+        <di:waypoint x="370" y="260" />
+        <di:waypoint x="600" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="420" y="242" width="150" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09sk1ze_di" bpmnElement="eligible">
+        <di:waypoint x="900" y="285" />
+        <di:waypoint x="900" y="430" />
+        <di:waypoint x="320" y="430" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="900" y="355" width="36" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ofcqsi_di" bpmnElement="Flow_1ofcqsi">
+        <di:waypoint x="270" y="470" />
+        <di:waypoint x="270" y="525" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1cr3ylm_di" bpmnElement="unacceptableRisk">
+        <di:waypoint x="270" y="575" />
+        <di:waypoint x="270" y="672" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="272" y="621" width="27" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0nqlm3q_di" bpmnElement="acceptableRisk">
+        <di:waypoint x="295" y="550" />
+        <di:waypoint x="485" y="550" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="367" y="532" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1yu3na3_di" bpmnElement="amountLess50">
+        <di:waypoint x="510" y="575" />
+        <di:waypoint x="510" y="700" />
+        <di:waypoint x="1120" y="700" />
+        <di:waypoint x="1120" y="590" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="773" y="682" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10csvw8_di" bpmnElement="amountMore50">
+        <di:waypoint x="535" y="550" />
+        <di:waypoint x="730" y="550" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="578" y="532" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0rqt822_di" bpmnElement="managerAcceptable">
+        <di:waypoint x="945" y="550" />
+        <di:waypoint x="1070" y="550" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="999" y="532" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_087mwij_di" bpmnElement="Flow_087mwij">
+        <di:waypoint x="1170" y="550" />
+        <di:waypoint x="1302" y="550" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0pvh0n5_di" bpmnElement="Flow_0pvh0n5">
+        <di:waypoint x="830" y="550" />
+        <di:waypoint x="895" y="550" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1xtcmif_di" bpmnElement="managerRefused">
+        <di:waypoint x="920" y="525" />
+        <di:waypoint x="920" y="410" />
+        <di:waypoint x="972" y="410" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="929" y="465" width="13" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12vajl8_di" bpmnElement="Flow_12vajl8">
+        <di:waypoint x="700" y="260" />
+        <di:waypoint x="875" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1l502i1_di" bpmnElement="ineligible">
+        <di:waypoint x="900" y="235" />
+        <di:waypoint x="900" y="180" />
+        <di:waypoint x="1030" y="180" />
+        <di:waypoint x="1030" y="158" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="914" y="203" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

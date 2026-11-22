@@ -1,0 +1,49 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="page-title mb-0">New loan application</h4>
+  <a class="btn btn-outline-secondary" routerLink="{{isCustomer()? '/applications' : '/pending'}}">Back</a>
+</div>
+
+<div *ngIf="messageError" class="alert alert-danger text-center">{{messageError}}</div>
+
+<div class="card">
+  <div class="card-body">
+    <form>
+
+      <div class="mb-3">
+        <label for="amount">Loan amount (EGP)</label>
+        <input [class.is-invalid]="amountError" #amount id="amount" type="number" step="0.01" class="form-control"
+               placeholder="e.g. 50000">
+          <div class="invalid-feedback d-block" *ngIf="amountError">
+              {{ amountError }}
+          </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="termMonths">Term (months)</label>
+        <input  [class.is-invalid]="termMonthsError" #termMonths id="termMonths" type="number" class="form-control"
+               placeholder="e.g. 24">
+          <div class="invalid-feedback d-block" *ngIf="termMonthsError">
+              {{ termMonthsError }}
+          </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="purpose">Purpose (optional)</label>
+        <input [class.is-invalid]="purposeError" #purpose id="purpose" type="text" class="form-control"
+               placeholder="e.g. Car, home renovation, education">
+          <div class="invalid-feedback d-block" *ngIf="purposeError">
+              {{ purposeError }}
+          </div>
+      </div>
+
+      <p class="text-muted small">
+        Applications are checked automatically against your credit score. Requests above
+        50,000 are reviewed by the risk officer and then by the branch manager.
+      </p>
+
+      <button class="btn btn-primary" type="button" (click)="submitApplication(amount.value, termMonths.value, purpose.value)">
+        Submit application
+      </button>
+    </form>
+  </div>
+</div>

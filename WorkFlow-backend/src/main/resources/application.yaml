@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: WorkFlow-backend
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    # Shared Oracle schema: this project and the earlier course tasks all live in EWALLET.
+    url: jdbc:oracle:thin:@//localhost:1521/orclpdb
+    username: EWALLET
+    password: 123456
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  activiti:
+    db-history-used: true
+    history-level: audit
+
+server:
+  port: 8085
+  error:
+    # Boot 3.x location: include exception messages in error responses.
+    include-message: always
+
+token:
+  secret: mkopljiuyhbqduhcbnkwiQIBNCkc25@kascnascnwq_)cjsaaAKNCASIH@^SAKCNCkasc25ascoqdn
+  time: 1d

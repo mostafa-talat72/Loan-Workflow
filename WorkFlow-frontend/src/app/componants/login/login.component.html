@@ -1,0 +1,49 @@
+<section class="auth-page">
+  <div class="auth-card">
+
+    <aside class="auth-side">
+      <span class="auth-badge">LW</span>
+      <h3>Smart lending,<br>started online.</h3>
+      <p>Submit your request, track the credit check and follow every review step in one place.</p>
+      <ul class="auth-points">
+        <li>Instant credit score check</li>
+        <li>Risk officer and branch manager review</li>
+        <li>Clear status at every stage</li>
+      </ul>
+    </aside>
+
+    <div class="auth-form">
+      <h4>Welcome back</h4>
+      <p class="auth-sub">Sign in to continue</p>
+
+      <form>
+        <div class="mb-3">
+          <label for="username">Username</label>
+          <input [class.is-invalid]="usernameError" #username id="username" type="text" class="form-control"
+                 autocomplete="username" placeholder="Enter your username">
+            <div class="invalid-feedback d-block" *ngIf="passwordError">
+                {{ passwordError }}
+            </div>
+        </div>
+        <div class="mb-3">
+          <label for="password">Password</label>
+          <input [class.is-invalid]="usernameError" #password id="password" type="password" class="form-control"
+                 autocomplete="current-password" placeholder="Enter your password">
+            <div class="invalid-feedback d-block" *ngIf="passwordError">
+                {{ passwordError }}
+            </div>
+        </div>
+          <div class="login-message" *ngIf="messageError" role="alert">
+              <i class="fa fa-exclamation-circle"></i>
+              <span>{{ messageError }}</span>
+          </div>
+        <button class="btn btn-primary w-100" type="button" (click)="login(username.value, password.value)" )>
+          Sign in
+        </button>
+      </form>
+
+      <p class="auth-switch">New here? <a routerLink="/signup">Create an account</a></p>
+    </div>
+
+  </div>
+</section>

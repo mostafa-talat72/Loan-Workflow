@@ -1,0 +1,98 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="page-title mb-0">Pending Applications</h4>
+</div>
+
+<div *ngIf="messageError" class="alert alert-danger text-center">{{messageError}}</div>
+<div *ngIf="messageWarning" class="alert alert-warning text-center">{{messageWarning}}</div>
+
+<div *ngIf="loading" class="card">
+  <div class="card-body text-center py-5">
+    <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+    <p class="text-muted mt-3 mb-0">Loading pending applications...</p>
+  </div>
+</div>
+
+<div *ngIf="loanApplications" class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+        <tr>
+          <th>#</th>
+          <th>Applicant</th>
+          <th>Amount</th>
+          <th>Term</th>
+          <th>Score</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let loanApplication of loanApplications">
+          <td>{{loanApplication.id}}</td>
+          <td>{{loanApplication.applicant.fullName || loanApplication.applicant.username}}</td>
+          <td>EGP{{loanApplication.amount}}</td>
+          <td>{{loanApplication.termMonths}} months</td>
+          <td>{{loanApplication.creditScore}}</td>
+          <td><span class="badge badge-status {{getLoanStatusCodeStyle(loanApplication.status.code)}}">{{loanApplication.status.name}}</span></td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-outline-secondary me-2" routerLink="/applications/{{loanApplication.id}}">Details</a>
+            <button class="btn btn-sm btn-primary" type="button"
+                    (click)="openReview(loanApplication.id,
+                    loanApplication.applicant.fullName || loanApplication.applicant.username,
+                     loanApplication.amount, loanApplication.termMonths, loanApplication.creditScore)">Review</button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop-custom" *ngIf="selected" (click)="cancel()"></div>
+<div class="modal-custom" *ngIf="selected">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Review application #{{ selected.id }}</h5>
+        <button type="button" class="close" (click)="cancel()">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">
+          {{ selected.applicant.fullName }} —
+          {{ selected.amount | currency:'EGP' }} for {{ selected.termMonths }} months
+        </p>
+        <p class="text-muted small mb-3">Credit score: {{ selected.creditScore }}</p>
+
+        <div class="alert alert-danger" *ngIf="reviewError">{{ reviewError }}</div>
+
+        <div class="btn-group d-block mb-3">
+          <button type="button" class="btn"
+                  [ngClass]="decision === 'APPROVE' ? 'btn-success' : 'btn-outline-success'"
+                  (click)="decision = 'APPROVE'">Approve</button>
+          <button type="button" class="btn"
+                  [ngClass]="decision === 'REJECT' ? 'btn-danger' : 'btn-outline-danger'"
+                  (click)="decision = 'REJECT'">Reject</button>
+        </div>
+
+        <div class="mb-0">
+          <label for="notes">Notes</label>
+          <textarea id="notes" class="form-control" rows="3" maxlength="500"
+                    [(ngModel)]="notes"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="cancel()" >
+          Cancel
+        </button>
+        <button type="button" class="btn"
+                [ngClass]="decision === 'APPROVE' ? 'btn-success' : 'btn-danger'"
+                (click)="confirm()" >
+          {{ saving ? 'Saving...' : (decision === 'APPROVE' ? 'Approve' : 'Reject') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
