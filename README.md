@@ -68,6 +68,7 @@ training/
 | Method | Endpoint | Role | Purpose |
 | --- | --- | --- | --- |
 | POST | `/auth/login` | public | Returns `{ username, token, role }` |
+| POST | `/auth/signup` | public | Creates a `CUSTOMER` account and returns `{ username, token, role }` |
 | POST | `/loans/submit` | CUSTOMER | Submit a new loan application |
 | GET | `/loans/my` | CUSTOMER | Own applications |
 | GET | `/loans/pending` | RISK_OFFICER / BRANCH_MANAGER | Work queue for the current role |
